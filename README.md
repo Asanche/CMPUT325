@@ -1,4 +1,8 @@
 #Adam Sanche's CMPUT 325 Assignment Repository
 
-##Purpose
-* store my assignments for future reference, and backup. Plus version control is always ideal, so why not.
+##Reasons for Repository
+* Store my assignments for future reference. 
+* Online backup. 
+* Version control is always ideal, so why not.
+* Making repos feels good :D
+* etc...
