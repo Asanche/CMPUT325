@@ -1,4 +1,4 @@
-(defun evaluate (E)
+(defun fl-ev (E)
     (cond 
         ((equal (car E) 'first)
             (caadr E))
@@ -8,17 +8,31 @@
     )
 )
 
+
+
 (defun fl-interp (E P)
-    (if (atom E)
-        E
-        (if (atom (car E))
-            (evaluate (list (car E) (fl-interp (cadr E) P)))
-            E ; else
+    (cond
+        ((atom E)
+            E)
+        ((not (atom (cadr E)))
+            (fl-ev
+                (list
+                    (car E)
+                    (fl-interp (cadr E) P)
+                )
+            )
         )
+        (T E)
     )
 )
 
-(trace evaluate)
-(trace fl-interp)
 
+;; (trace evaluate)
+(trace fl-interp)
+(trace fl-ev)
+
+(fl-interp '(first (1 2)) nil)
+(fl-interp '(rest (1 2)) nil)
 (fl-interp '(rest (1 2 (3))) nil)
+(fl-interp '(rest (p 1 2 (3))) nil)
+(fl-interp '(first (rest (1 (2 3)))) nil)
