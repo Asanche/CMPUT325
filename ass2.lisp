@@ -1,5 +1,11 @@
 (defun fl-ev (E)
     (cond 
+        ((equal (car E) 'atom)
+            (atom (cadr E)))
+        ((equal (car E) 'null)
+            (null (cadr E)))
+        ((equal (car E) 'isnumber)
+            (numberp (cadr E)))
         ((equal (car E) 'first)
             (caadr E))
         ((equal (car E) 'rest)
@@ -73,7 +79,9 @@
 
 ;; (trace fl-interp)
 ;; (trace fl-ev)
-
+(print (fl-interp '(null nil) nil))
+(print (fl-interp '(atom 1) nil))
+(print (fl-interp '(isnumber 1) nil))
 (print (fl-interp '(rest (1 2 (3))) nil)) ;; ==> (2 (3))
 (print (fl-interp '(rest (p 1 2 (3))) nil)) ;; ==> (1 2 (3))
 (print (fl-interp '(first (rest (1 (2 3)))) nil)) ;; ==> (2 3)
@@ -85,14 +93,14 @@
 (print (fl-interp '(eq (1 2 3) (1 2 3)) nil)) ;; ==> NIL
 (print (fl-interp '(equal (1 2 3) (1 2 3)) nil)) ;; ==> T
 
-;; (if x y z)
+;; (if x y z) DONE
 ;; (null x)
 ;; (atom x)
-;; (eq x y)
+;; (eq x y) DONE
 ;; (first x) DONE
 ;; (rest x) DONE
-;; (cons x y)
-;; (equal x y) 
+;; (cons x y) DONE
+;; (equal x y) DONE
 ;; (isnumber x)  return T (true) if x is a number, NIL otherwise. 
 ;;        Same as (numberp x) in Lisp
 ;; (+ x y) DONE
@@ -103,4 +111,4 @@
 ;; (= x y) DONE
 ;; (and x y) DONE
 ;; (or x y) DONE
-;; (not x)
+;; (not x) DONE
