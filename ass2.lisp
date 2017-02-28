@@ -24,21 +24,44 @@
             (or (cadr E) (caddr E)))
         ((equal (car E) 'equal)
             (equal (cadr E) (caddr E)))
+        ((equal (car E) 'cons)
+            (cons (cadr E) (caddr E)))
+        ((equal (car E) 'if)
+            (if (cadr E) (caddr E) (cadddr E)))
         (T E) ; like 'default' in Java switch
     )
 )
-
-
 
 (defun fl-interp (E P)
     (cond
         ((atom E)
             E)
-        ((not (atom (cadr E)))
-            (fl-ev
-                (list
-                    (car E)
-                    (fl-interp (cadr E) P)
+        ((not(atom (car E))) 
+            E)
+        ((not (atom (cadr E))); checks first nested value
+            (if (null (cddr E))
+                (fl-ev ; Handles nested single inputs
+                    (list
+                        (car E)
+                        (fl-interp (cadr E) P)
+                    )
+                )
+                (if (null (cdddr E))
+                    (fl-ev ; Handles double inputs like '(equal (1 2 3) (1 2 3))
+                        (list
+                            (car E)
+                            (fl-interp (cadr E) P)
+                            (fl-interp (caddr E) P)
+                        )
+                    )
+                    (fl-ev ; Handles double inputs like '(if (> 2 3) (< 2 3) (= 1 2))
+                        (list
+                            (car E)
+                            (fl-interp (cadr E) P)
+                            (fl-interp (caddr E) P)
+                            (fl-interp (cadddr E) P)
+                        )
+                    )
                 )
             )
         )
@@ -48,26 +71,19 @@
     )
 )
 
+;; (trace fl-interp)
+;; (trace fl-ev)
 
-;; (trace evaluate)
-(trace fl-interp)
-(trace fl-ev)
-
-;; (fl-interp '(first (1 2)) nil)
-;; (fl-interp '(rest (1 2)) nil)
-(fl-interp '(rest (1 2 (3))) nil)
-(fl-interp '(rest (p 1 2 (3))) nil)
-(fl-interp '(first (rest (1 (2 3)))) nil)
-;; (fl-interp '(eq 2 2) nil)
-;; (fl-interp '(eq 2 1) nil)
-;; (fl-interp '(+ 4 1) nil)
-(fl-interp '(eq (< 3 4) (eq (+ 3 4) (- 2 3))) nil)
-(fl-interp '(if (> 1 0) (+ 1 2) (+ 2 3)) nil)
-(fl-interp '(if (> 1 0) (if (eq 1 2) 3 4) 5)  nil)
-(fl-interp '(and (or T  nil) (> 3 4)) nil)
-(fl-interp '(eq (1 2 3) (1 2 3)) nil)
-(fl-interp '(eq (1 2 3) (1 2 3)) nil)
-(fl-interp '(equal (1 2 3) (1 2 3)) nil)
+(print (fl-interp '(rest (1 2 (3))) nil)) ;; ==> (2 (3))
+(print (fl-interp '(rest (p 1 2 (3))) nil)) ;; ==> (1 2 (3))
+(print (fl-interp '(first (rest (1 (2 3)))) nil)) ;; ==> (2 3)
+(print (fl-interp '(eq (< 3 4) (eq (+ 3 4) (- 2 3))) nil)) ;; ==> nil
+(print (fl-interp '(if (> 1 0) (+ 1 2) (+ 2 3)) nil)) ;; ==> 3
+(print (fl-interp '(if (> 1 0) (if (eq 1 2) 3 4) 5)  nil)) ;; ==> 4
+(print (fl-interp '(cons (first (1 2 3))  (cons a nil)) nil)) ;; ==> (1 a)
+(print (fl-interp '(and (or T nil) (> 3 4)) nil)) ;; ==> NIL
+(print (fl-interp '(eq (1 2 3) (1 2 3)) nil)) ;; ==> NIL
+(print (fl-interp '(equal (1 2 3) (1 2 3)) nil)) ;; ==> T
 
 ;; (if x y z)
 ;; (null x)
