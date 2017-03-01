@@ -26,8 +26,14 @@
             E)
         ((atom (car E))
             (if (equal (car E) N)
-                (append (get-func P) (cdr E))
+                (append (get-func P) (sub-p (cdr E) P N))
                 E
+            )
+        )
+        ((not (atom (car E)))
+            (if (equal (caar E) N)
+                (append (get-func P) (sub-p (cadr E) P N))
+                (append (caar E) (sub-p (cadr E) P N))
             )
         )
         (T
@@ -65,15 +71,23 @@
     )
 )
 
+(defun handle-ps (E P) ;; A is Args ( X in (f X = (+ 1 X)))
+    ;; get first program
+    (if (null P)
+        E
+        (handle-ps (handle-p E (car P) nil nil) (cdr P))
+    )
+)
+
 (defun handle-p (E P A N) ;; A is Args ( X in (f X = (+ 1 X)))
     ;; get first program
     (if (null P)
         E
         (if (null N)
-            (handle-p E P A (caar P))
+            (handle-p E P A (car P))
             (if (null A)
-                (handle-p E P (get-args A (cdar P)) N)
-                (sub-args (car (sub-p E (car P) N)) A (cdr E))
+                (handle-p E P (get-args A (cdr P)) N)
+                (sub-args (car (sub-p E P N)) A (cdr E))
             )
         )
     )
@@ -131,7 +145,7 @@
 )
 
 (defun fl-interp (E P)
-    (handle-e (handle-p (handle-e E) P nil nil))
+    (handle-e (handle-ps (handle-e E) P))
 )
 
 ;; (trace handle-p)
@@ -155,6 +169,37 @@
 (print (fl-interp '(a (+ 1 2) (+ 2 3)) '((a X Y = (+ X Y)))));; ==> 8
 (print (fl-interp '(a (+ 1 2) (+ 2 3) (+ 6 6)) '((a X Y Z = (+ X (+ Y Z)))))) ;; ==> 20
 ; a function call may be nested
+
+;;More Samples
+; a program may be empty. 
+
+(print (fl-interp '(+ 1 2) nil)) ;; => 3
+
+; a function call may be nested
+
+(print (fl-interp '(f (f 2)) 
+        '( (f X =  (* X X)) )
+)) ;; =>  16
+
+; function symbols may be quite arbitrary
+
+(print (fl-interp '(a (+ 1 2)) 
+        '( (a X = (+ X 1)) )
+)) ;; => 4
+
+(print (fl-interp '(b (+ 1 2)) 
+        '( (b X = (+ X 1)) )
+)) ;; => 4
+
+
+(print (fl-interp '(h (g 5))
+    '(  (g X = (g (g X)))
+        (h X = a )  )
+)) ;; => a  ; for normal order reduction, and 
+            ; non-terminating for applicative order reduction
+
+
+; But don't use setq in your program, it's not allowed!
 
 ;; (fl-interp '(f (f 2)) '( (f X =  (* X X)) ))
 ;; (if x y z) DONE
