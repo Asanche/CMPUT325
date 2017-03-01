@@ -40,14 +40,22 @@
 )
 
 (defun sub-arg (E A V)
-    (if (null E)
-        E
-        (if (equal (car E) (car A))
-            (append (list (car V)) (cdr E))
-            (append (list (car E)) (sub-args (cdr E) A V))
+    (cond 
+        ((null E) 
+            E)
+        ((atom E)
+            (if (equal E (car A))
+                (list (car V))
+                E
+            )
         )
+        ((equal (car E) (car A))
+            (append (list (car V)) (cdr E)))
+        ((atom (cadr E))
+            (append (list (car E)) (sub-arg (cdr E) A V)))
+        (T 
+            (append (list (car E)) (append (list (sub-arg (cadr E) A V)) (sub-arg (cddr E) A V))))
     )
-
 )
 
 (defun sub-args (E A V)
@@ -112,39 +120,43 @@
 
 (defun handle-e (E)
     (cond
-        ((atom E)
-            E)
-        ((not(atom (car E))) 
-            E)
-        ((not (atom (cadr E))); checks first nested value
-            (if (null (cddr E))
-                (fl-ev ; Handles nested single inputs
-                    (list
-                        (car E)
-                        (handle-e (cadr E))
-                    )
-                )
-                (if (null (cdddr E))
-                    (fl-ev ; Handles 2 inputs like '(equal (1 2 3) (1 2 3))
-                        (list
-                            (car E)
-                            (handle-e (cadr E))
-                            (handle-e (caddr E))
-                        )
-                    )
-                    (fl-ev ; Handles 3 inputs like '(if (> 2 3) (< 2 3) (= 1 2))
-                        (list
-                            (car E)
-                            (handle-e (cadr E))
-                            (handle-e (caddr E))
-                            (handle-e (cadddr E))
-                        )
-                    )
-                )
-            )
-        )
-        ((atom (cadr E))
-            (fl-ev E))
+        ;; ((atom E)
+        ;;     E)
+        ;; ((not(atom (car E))) 
+        ;;     E)
+        ;; ((not(atom (cadr E))); checks first nested value
+        ;;     ;; (append (list (handle-e (cadr E))) (handle-e (cddr E)))
+        ;;     (if (null (cddr E))
+        ;;         (fl-ev ; Handles nested single inputs
+        ;;             (list
+        ;;                 (car E)
+        ;;                 (handle-e (cadr E))
+        ;;             )
+        ;;         )
+        ;;         (if (null (cdddr E))
+        ;;             (fl-ev ; Handles 2 inputs like '(equal (1 2 3) (1 2 3))
+        ;;                 (list
+        ;;                     (car E)
+        ;;                     (handle-e (cadr E))
+        ;;                     (handle-e (caddr E))
+        ;;                 )
+        ;;             )
+        ;;             (fl-ev ; Handles 3 inputs like '(if (> 2 3) (< 2 3) (= 1 2))
+        ;;                 (list
+        ;;                     (car E)
+        ;;                     (handle-e (cadr E))
+        ;;                     (handle-e (caddr E))
+        ;;                     (handle-e (cadddr E))
+        ;;                 )
+        ;;             )
+        ;;         )
+        ;;     )
+        ;; )
+        ((null E) values)
+        ((atom (car E))
+            (fl-ev (append (list (car E)) (list (handle-e (cdr E))))))
+        ((not (atom (car E)))
+            (fl-ev (append (list (handle-e (car E))) (list (handle-e (cdr E))))))
         (T E)
     )
 )
@@ -155,9 +167,11 @@
 
 (trace handle-p)
 (trace handle-e)
-(trace sub-p)
-(trace fl-interp)
-(trace sub-args)
+(trace fl-ev)
+;; (trace sub-p)
+;; (trace fl-interp)
+;; (trace sub-args)
+;; (trace sub-arg)
 ;; (print (fl-interp '(rest (1 2 (3))) nil)) ;; ==> (2 (3))
 ;; (print (fl-interp '(rest (p 1 2 (3))) nil)) ;; ==> (1 2 (3))
 ;; (print (fl-interp '(first (rest (1 (2 3)))) nil)) ;; ==> (2 3)
@@ -168,8 +182,8 @@
 ;; (print (fl-interp '(and (or T nil) (> 3 4)) nil)) ;; ==> NIL
 ;; (print (fl-interp '(eq (1 2 3) (1 2 3)) nil)) ;; ==> NIL
 ;; (print (fl-interp '(equal (1 2 3) (1 2 3)) nil)) ;; ==> T
-(fl-interp '(a (+ 1 2)) '((a X = (+ X 1))))
-(fl-interp '(a (+ 1 2) (+ 2 3)) '((a X Y = (+ X Y))))
+;; (fl-interp '(a (+ 1 2)) '((a X = (+ X 1))))
+;; (fl-interp '(a (+ 1 2) (+ 2 3)) '((a X Y = (+ X Y))))
 (fl-interp '(a (+ 1 2) (+ 2 3) (+ 6 6)) '((a X Y Z = (+ X (+ Y Z)))))
 ; a function call may be nested
 
