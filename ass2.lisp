@@ -39,16 +39,21 @@
     )
 )
 
+(defun sub-arg (E A V)
+    (if (null E)
+        E
+        (if (equal (car E) (car A))
+            (append (list (car V)) (cdr E))
+            (append (list (car E)) (sub-args (cdr E) A V))
+        )
+    )
+
+)
+
 (defun sub-args (E A V)
     (if (null A)
         E
-        (if (null E)
-            E
-            (if (equal (car E) (car A))
-                (append (list (car V)) (cdr E))
-                (append (list (car E)) (sub-args (cdr E) A V))
-            )
-        )
+        (sub-args (sub-arg E A V) (cdr A) (cdr V))
     )
 )
 
@@ -164,6 +169,7 @@
 ;; (print (fl-interp '(eq (1 2 3) (1 2 3)) nil)) ;; ==> NIL
 ;; (print (fl-interp '(equal (1 2 3) (1 2 3)) nil)) ;; ==> T
 (fl-interp '(a (+ 1 2)) '((a X = (+ X 1))))
+(fl-interp '(a (+ 1 2) (+ 2 3)) '((a X Y = (+ X Y))))
 ; a function call may be nested
 
 ;; (fl-interp '(f (f 2)) '( (f X =  (* X X)) ))
