@@ -3,97 +3,81 @@
         ((null l) '())
         (T (append (rev (cdr l)) (list (car l))))))
 
-(defun get-args (A P E N)
-    ;; (if (null (cdar E))
-    ;;     A
-        (if (equal (quote =) (car P))
-            A
-            (if (null A)
-                (list (get-args (cons (car P) (list (cadr E))) (cdr P) (cdr E)) (get-args (cons (car P) (cdadr E)) (cdr P) (cdr E)))
-                (list (get-args (cons (cons (car P) (list (cadr E))) A) (cdr P) (cdr E)) (get-args (cons (cons (car P) (cdadr E)) A) (cdr P) (cdr E)))
-            )
-        )
-    ;; )
-)
 
-(defun get-func (P)
-    (if (equal (quote =) (car P))
-        (cdr P)
-        (get-func (cdr P))
-    )
-)
 
-(defun sub-p (E P N A) ; sub in N then sub in Args
+(defun sub-arg (E A) ;; of form ( (K . V) (K . V) ... )
     (cond
-        ((null E)
-            E)
-        ((atom E)
-            (if (equal E N)
-                (sub-args (get-func P) A)
-                E
+        ((null E) ;; If E is nil, we have reached the end, and are done subbing values into E
+            nil ;; return nil to signify finished
+        )
+        ((atom (car E)) ;; If the first value is an atom, we can replace it safely if necessary
+            (if (equal (caar A) (car E)) ;; If the first value of A (K) equals the first value of E, we found an instance of the argument
+                (cons (cdar A) (sub-arg (cdr E) A)) ;; Use (cadr A) b/c it gives the value as a list, so it will nest it as it was already nested >.> Recurr as well over cdr E
+                (cons (car E) (sub-arg (cdr E) A)) ;; No match, but still recur over rest of E
             )
         )
-        ((atom (car E))
-            (if (equal (car E) N)
-                (if (null (cdr E))
-                    (sub-args (get-func P) (list (car A)))
-                    (sub-args (append (get-func P) (sub-p (cdr E) P N (cdr A))) (list (car A)))
-                )
-            )
+        ((not (atom (car E))) ;; If the first value of A is not an atom, we need to recur in two directions... on car and cdr to unnest the expression for substitution
+            (cons (sub-arg (car E) A) (sub-arg (cdr E) A)) ;; Recombine them after execution ofc
         )
-        ((not (atom (car E)))
-            (cons (sub-p (car E) P N A) (sub-p (cdr E) P N A))
-        )
-    )
-)
-
-(defun sub-arg (E A)
-    (cond 
-        ((null E) 
-            E)
-        ((atom E)
-            (if (equal E (caar A))
-                (cdar A)
-                E
-            )
-        )
-        ((atom (car E))
-            (if (equal (car E) (caar A))
-                (cons (cadar A) (sub-arg (cdr E) A))
-                (cons (car E) (sub-arg (cdr E) A))
-            )
-        )
-        ((not (atom (car E)))
-            (cons (sub-arg (car E) A) (sub-arg (cdr E) A)))
     )
 )
 
 (defun sub-args (E A)
-    (if (null A)
+    (if (null A) ;; If A is null, we have iterated over all Arguments to be subsituted
         E
-        (sub-args (sub-arg (sub-arg E (list (car A))) A) (cdr A))
+        (sub-args (sub-arg E A) (cdr A)) ;; We iteratre through A, using the resultant E as our next E
     )
 )
 
-(defun handle-ps (E P) ;; A is Args ( X in (f X = (+ 1 X)))
-    ;; get first program
-    (if (null P)
-        E
-        (handle-ps (handle-p E (car P) nil nil) (cdr P))
+(defun sub-p () ; sub in N then sub in Args
+
+)
+
+(defun get-func (P) ;; This gets the value from P after the equals sign
+    (if (equal (car P) (quote =)) ;; If we reach the '=', all to the right is the program application
+        (cadr P) ;; The rest is the func, but it is nested as ((* a b)) etc...
+        (get-func (cdr P)) ;; recur across P until '='
     )
 )
 
-(defun handle-p (E P A N) ;; A is Args ( X in (f X = (+ 1 X)))
-    ;; get first program
-    (if (null P)
-        E
-        (if (null N)
-            (handle-p E P A (car P))
-            (if (null A)
-                (handle-p E P (get-args A (cdr P) E) N)
-                (sub-p E P N A)
-            )
+(defun get-args (P V)
+    (cond
+        ((or (null P) (null V)) ;; If these values are nil, we should not return anything confusing
+            nil ;; Exit with nil
         )
+        ((equal (cdr P) (quote =)) ;; If the first value of P is '=', we have found all of the arguments for that program
+            (car V) ;;
+        )
+        (T
+            (cons (cons (car P) (car V)) (get-args (cdr P) (cdr V)))
+        ) ;; Contruct K.V Pairs from current K.V Pair and all others
+    )
+)
+
+(defun handle-p (E P) ;; Get All Argument K.V Pairs, then sub the program into the values in the K.V Pairs
+    (cond
+        ((null E) ;; If E is nil, we passed in () as (cdr E) b/c E was ((a 2 3)) or something
+            nil ;; return nil as cons doesnt care
+        )
+        ((atom E)
+            E ;; return E, as it is not evaluatable
+        )
+        ((atom (car E)) ;; If the first element of E is an atom, we have unnested a program name (built in like '*', user defined via P, or undefined, and thusly an error)
+            (if (equal (car P) (car E)) ;; if the program name matches P, gogogo
+                (sub-args (get-func P) (get-args (cdr P) (handle-p (cdr E) P))) ;; Here we will replace the name with the program, and evaluate it using the args that should be specified to the right
+                E ;; return E, as it was not a substitutable program application, but needs to be kept
+            )
+        ) ;; We pass (cdr P) to get-args to skip the name of the function
+        ((not (atom (car E))) ;; If the first element is't an atom, we have a further nested expression like ((F 1 2) (A 3 4))
+            (cons (handle-p (car E) P) (handle-p (cdr E) P)) ;; We will pass the first and rest to handle-p, unnesting the list one layer. Further nesting is handled implicity e.g. ((F (A (1 2)) (A 1 2))
+        ) 
+    )
+)
+
+(defun handle-ps (E P) 
+    (if (null P) ;; If P is nil, we are at the end of the list of P's and we return
+        E 
+        (handle-ps (handle-p E (car P)) (cdr P)) ;; Recurr, passing in a new P to handle-p every time. 
     )
 )
 
@@ -156,24 +140,25 @@
 ;; (trace handle-ps)
 ;; (trace handle-e)
 ;; (trace fl-ev)
-(trace sub-p)
+;; (trace sub-p)
 ;; (trace fl-interp)
-(trace sub-args)
-(trace sub-arg)
+;; (trace sub-args)
+;; (trace sub-arg)
 ;; (trace get-args)
-;; (print (fl-interp '(rest (1 2 (3))) nil)) ;; ==> (2 (3))
-;; (print (fl-interp '(rest (p 1 2 (3))) nil)) ;; ==> (1 2 (3))
-;; (print (fl-interp '(first (rest (1 (2 3)))) nil)) ;; ==> (2 3)
-;; (print (fl-interp '(eq (< 3 4) (eq (+ 3 4) (- 2 3))) nil)) ;; ==> nil
-;; (print (fl-interp '(if (> 1 0) (+ 1 2) (+ 2 3)) nil)) ;; ==> 3
-;; (print (fl-interp '(if (> 1 0) (if (eq 1 2) 3 4) 5)  nil)) ;; ==> 4
-;; (print (fl-interp '(cons (first (1 2 3))  (cons a nil)) nil)) ;; ==> (1 a)
-;; (print (fl-interp '(and (or T nil) (> 3 4)) nil)) ;; ==> NIL
-;; (print (fl-interp '(eq (1 2 3) (1 2 3)) nil)) ;; ==> NIL
-;; (print (fl-interp '(equal (1 2 3) (1 2 3)) nil)) ;; ==> T
-;; (print (fl-interp '(a (+ 1 2)) '((a X = (+ X 1))))) ;; ==> 4
-;; (print (fl-interp '(a (+ 1 2) (+ 2 3)) '((a X Y = (+ X Y)))));; ==> 8
-;; (print (fl-interp '(a (+ 1 2) (+ 2 3) (+ 6 6)) '((a X Y Z = (+ X (+ Y Z)))))) ;; ==> 20
+;; (trace get-func)
+(print (fl-interp '(rest (1 2 (3))) nil)) ;; ==> (2 (3))
+(print (fl-interp '(rest (p 1 2 (3))) nil)) ;; ==> (1 2 (3))
+(print (fl-interp '(first (rest (1 (2 3)))) nil)) ;; ==> (2 3)
+(print (fl-interp '(eq (< 3 4) (eq (+ 3 4) (- 2 3))) nil)) ;; ==> nil
+(print (fl-interp '(if (> 1 0) (+ 1 2) (+ 2 3)) nil)) ;; ==> 3
+(print (fl-interp '(if (> 1 0) (if (eq 1 2) 3 4) 5)  nil)) ;; ==> 4
+(print (fl-interp '(cons (first (1 2 3))  (cons a nil)) nil)) ;; ==> (1 a)
+(print (fl-interp '(and (or T nil) (> 3 4)) nil)) ;; ==> NIL
+(print (fl-interp '(eq (1 2 3) (1 2 3)) nil)) ;; ==> NIL
+(print (fl-interp '(equal (1 2 3) (1 2 3)) nil)) ;; ==> T
+(print (fl-interp '(a (+ 1 2)) '((a X = (+ X 1))))) ;; ==> 4
+(print (fl-interp '(a (+ 1 2) (+ 2 3)) '((a X Y = (+ X Y)))));; ==> 8
+(print (fl-interp '(a (+ 1 2) (+ 2 3) (+ 6 6)) '((a X Y Z = (+ X (+ Y Z)))))) ;; ==> 20
 ; a function call may be nested
 
 ;;More Samples
