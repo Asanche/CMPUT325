@@ -170,6 +170,7 @@
 ;; (print (fl-interp '(equal (1 2 3) (1 2 3)) nil)) ;; ==> T
 (fl-interp '(a (+ 1 2)) '((a X = (+ X 1))))
 (fl-interp '(a (+ 1 2) (+ 2 3)) '((a X Y = (+ X Y))))
+(fl-interp '(a (+ 1 2) (+ 2 3) (+ 6 6)) '((a X Y Z = (+ X (+ Y Z)))))
 ; a function call may be nested
 
 ;; (fl-interp '(f (f 2)) '( (f X =  (* X X)) ))
