@@ -3,14 +3,17 @@
         ((null l) '())
         (T (append (rev (cdr l)) (list (car l))))))
 
-(defun get-args (A P)
-    (if (equal (quote =) (car P))
-        A
-        (if (null A)
-            (get-args (list (car P)) (cdr P))
-            (get-args (append (list (car P)) A) (cdr P))
+(defun get-args (A P E)
+    ;; (if (null (cdar E))
+    ;;     A
+        (if (equal (quote =) (car P))
+            A;; (get-args A P (cdar E))
+            (if (null A)
+                (list (get-args (cons (car P) (cadr E)) (cdr P) (cdr E)) (get-args (cons (car P) (cdadr E)) (cdr P) (cdr E)))
+                (list (get-args (cons (cons (car P) (cadr E)) A) (cdr P) (cdr E)) (get-args (cons (cons (car P) (cdadr E)) A) (cdr P) (cdr E)))
+            )
         )
-    )
+    ;; )
 )
 
 (defun get-func (P)
@@ -20,54 +23,53 @@
     )
 )
 
-(defun sub-p (E P N) ; sub in N then sub in Args
+(defun sub-p (E P N A) ; sub in N then sub in Args
     (cond
         ((null E)
             E)
+        ((atom E)
+            (if (equal E N)
+                (sub-args (get-func P) A)
+                E
+            )
+        )
         ((atom (car E))
             (if (equal (car E) N)
-                (append (get-func P) (sub-p (cdr E) P N))
+                (sub-args (append (get-func P) (sub-p (cdr E) P N A)) (cdr A))
                 E
             )
         )
         ((not (atom (car E)))
-            (if (equal (caar E) N)
-                (append (get-func P) (sub-p (cadr E) P N))
-                (append (caar E) (sub-p (cadr E) P N))
-            )
-        )
-        (T
-            (if (equal (car E) N)
-                (append (get-func P) (sub-p (cdr E) P N))
-                (append (car E) (sub-p (cdr E) P N))
-            )
+            (sub-args (cons (sub-p (car E) P N A) (sub-p (cdr E) P N A)) A)
         )
     )
 )
 
-(defun sub-arg (E A V)
+(defun sub-arg (E A)
     (cond 
         ((null E) 
             E)
         ((atom E)
-            (if (equal E (car A))
-                (list (car V))
+            (if (equal E (caar A))
+                (cadar A)
                 E
             )
         )
-        ((equal (car E) (car A))
-            (append (list (car V)) (cdr E)))
-        ((atom (cadr E))
-            (append (list (car E)) (sub-arg (cdr E) A V)))
-        (T 
-            (append (list (car E)) (append (list (sub-arg (cadr E) A V)) (sub-arg (cddr E) A V))))
+        ((atom (car E))
+            (if (equal (car E) (caar A))
+                (cons (cadar A) (sub-arg (cdr E) A))
+                (cons (car E) (sub-arg (cdr E) A))
+            )
+        )
+        ((not (atom (car E)))
+            (cons (sub-arg (car E) A) (sub-arg (cdr E) A)))
     )
 )
 
-(defun sub-args (E A V)
+(defun sub-args (E A)
     (if (null A)
         E
-        (sub-args (sub-arg E A V) (cdr A) (cdr V))
+        (sub-args (sub-arg E A) (cdr A))
     )
 )
 
@@ -86,8 +88,8 @@
         (if (null N)
             (handle-p E P A (car P))
             (if (null A)
-                (handle-p E P (get-args A (cdr P)) N)
-                (sub-args (car (sub-p E P N)) A (cdr E))
+                (handle-p E P (get-args A (cdr P) E) N)
+                (sub-p E P N A)
             )
         )
     )
@@ -148,32 +150,35 @@
     (handle-e (handle-ps (handle-e E) P))
 )
 
-;; (trace handle-p)
-;; (trace handle-e)
-;; (trace fl-ev)
-;; (trace sub-p)
-;; (trace fl-interp)
-;; (trace sub-args)
-;; (trace sub-arg)
-(print (fl-interp '(rest (1 2 (3))) nil)) ;; ==> (2 (3))
-(print (fl-interp '(rest (p 1 2 (3))) nil)) ;; ==> (1 2 (3))
-(print (fl-interp '(first (rest (1 (2 3)))) nil)) ;; ==> (2 3)
-(print (fl-interp '(eq (< 3 4) (eq (+ 3 4) (- 2 3))) nil)) ;; ==> nil
-(print (fl-interp '(if (> 1 0) (+ 1 2) (+ 2 3)) nil)) ;; ==> 3
-(print (fl-interp '(if (> 1 0) (if (eq 1 2) 3 4) 5)  nil)) ;; ==> 4
-(print (fl-interp '(cons (first (1 2 3))  (cons a nil)) nil)) ;; ==> (1 a)
-(print (fl-interp '(and (or T nil) (> 3 4)) nil)) ;; ==> NIL
-(print (fl-interp '(eq (1 2 3) (1 2 3)) nil)) ;; ==> NIL
-(print (fl-interp '(equal (1 2 3) (1 2 3)) nil)) ;; ==> T
-(print (fl-interp '(a (+ 1 2)) '((a X = (+ X 1))))) ;; ==> 4
-(print (fl-interp '(a (+ 1 2) (+ 2 3)) '((a X Y = (+ X Y)))));; ==> 8
-(print (fl-interp '(a (+ 1 2) (+ 2 3) (+ 6 6)) '((a X Y Z = (+ X (+ Y Z)))))) ;; ==> 20
+(trace handle-p)
+(trace handle-ps)
+(trace handle-e)
+(trace fl-ev)
+(trace sub-p)
+(trace fl-interp)
+(trace sub-args)
+(trace sub-arg)
+(trace get-args)
+(trace get-arg)
+;; (print (fl-interp '(rest (1 2 (3))) nil)) ;; ==> (2 (3))
+;; (print (fl-interp '(rest (p 1 2 (3))) nil)) ;; ==> (1 2 (3))
+;; (print (fl-interp '(first (rest (1 (2 3)))) nil)) ;; ==> (2 3)
+;; (print (fl-interp '(eq (< 3 4) (eq (+ 3 4) (- 2 3))) nil)) ;; ==> nil
+;; (print (fl-interp '(if (> 1 0) (+ 1 2) (+ 2 3)) nil)) ;; ==> 3
+;; (print (fl-interp '(if (> 1 0) (if (eq 1 2) 3 4) 5)  nil)) ;; ==> 4
+;; (print (fl-interp '(cons (first (1 2 3))  (cons a nil)) nil)) ;; ==> (1 a)
+;; (print (fl-interp '(and (or T nil) (> 3 4)) nil)) ;; ==> NIL
+;; (print (fl-interp '(eq (1 2 3) (1 2 3)) nil)) ;; ==> NIL
+;; (print (fl-interp '(equal (1 2 3) (1 2 3)) nil)) ;; ==> T
+;; (print (fl-interp '(a (+ 1 2)) '((a X = (+ X 1))))) ;; ==> 4
+;; (print (fl-interp '(a (+ 1 2) (+ 2 3)) '((a X Y = (+ X Y)))));; ==> 8
+;; (print (fl-interp '(a (+ 1 2) (+ 2 3) (+ 6 6)) '((a X Y Z = (+ X (+ Y Z)))))) ;; ==> 20
 ; a function call may be nested
 
 ;;More Samples
 ; a program may be empty. 
 
-(print (fl-interp '(+ 1 2) nil)) ;; => 3
+;; (print (fl-interp '(+ 1 2) nil)) ;; => 3
 
 ; a function call may be nested
 
@@ -183,20 +188,20 @@
 
 ; function symbols may be quite arbitrary
 
-(print (fl-interp '(a (+ 1 2)) 
-        '( (a X = (+ X 1)) )
-)) ;; => 4
+;; (print (fl-interp '(a (+ 1 2)) 
+;;         '( (a X = (+ X 1)) )
+;; )) ;; => 4
 
-(print (fl-interp '(b (+ 1 2)) 
-        '( (b X = (+ X 1)) )
-)) ;; => 4
+;; (print (fl-interp '(b (+ 1 2)) 
+;;         '( (b X = (+ X 1)) )
+;; )) ;; => 4
 
 
-(print (fl-interp '(h (g 5))
-    '(  (g X = (g (g X)))
-        (h X = a )  )
-)) ;; => a  ; for normal order reduction, and 
-            ; non-terminating for applicative order reduction
+;; (print (fl-interp '(h (g 5))
+;;     '(  (g X = (g (g X)))
+;;         (h X = a )  )
+;; )) ;; => a  ; for normal order reduction, and 
+;;             ; non-terminating for applicative order reduction
 
 
 ; But don't use setq in your program, it's not allowed!
