@@ -98,17 +98,17 @@
             (cdadr E))
         ((equal (car E) 'eq)
             (eq (cadr E) (caddr E)))
-        ((equal (car E) '+)
+        ((and (and (equal (car E) '+) (numberp (cadr E))) (numberp (caddr E)))
             (+ (cadr E) (caddr E)))
-        ((equal (car E) '-)
+        ((and (and (equal (car E) '-) (numberp (cadr E))) (numberp (caddr E)))
             (- (cadr E) (caddr E)))
-        ((equal (car E) '*)
+        ((and (and (equal (car E) '*) (numberp (cadr E))) (numberp (caddr E)))
             (* (cadr E) (caddr E)))
-        ((equal (car E) '>)
+        ((and (and (equal (car E) '>) (numberp (cadr E))) (numberp (caddr E)))
             (> (cadr E) (caddr E)))
-        ((equal (car E) '<)
+        ((and (and (equal (car E) '<) (numberp (cadr E))) (numberp (caddr E)))
             (< (cadr E) (caddr E)))
-        ((equal (car E) '=)
+        ((and (and (equal (car E) '=) (numberp (cadr E))) (numberp (caddr E)))
             (= (cadr E) (caddr E)))
         ((equal (car E) 'and)
             (and (cadr E) (caddr E)))
@@ -160,34 +160,34 @@
 
 
 
-(print (fl-interp '(+ 10 5) nil)) ; > '15
-(print (fl-interp '(- 12 8) nil)) ; > '4
-(print (fl-interp '(* 5 9) nil)) ; > '45
-(print (fl-interp '(> 2 3) nil)) ; > 'nil
-(print (fl-interp '(< 1 131) nil)) ; > 't
-(print (fl-interp '(= 88 88) nil)) ; > 't
-(print (fl-interp '(and nil t) nil)) ; > 'nil
-(print (fl-interp '(or t nil) nil)) ; > 't
-(print (fl-interp '(not t) nil)) ; > 'nil
-(print (fl-interp '(isnumber 354) nil)) ; > 't
-(print (fl-interp '(equal (3 4 1) (3 4 1)) nil)) ; > 't
-(print (fl-interp '(if nil 2 3) nil)) ; > '3
-(print (fl-interp '(null ()) nil)) ; > 't
-(print (fl-interp '(atom (3)) nil)) ; > 'nil
-(print (fl-interp '(eq x x) nil)) ; > 't
-(print (fl-interp '(first (8 5 16)) nil)) ; > '8
-(print (fl-interp '(rest (8 5 16)) nil)) ; > '(5 16)
-(print (fl-interp '(cons 6 3) nil)) ; > '(6 . 3)
+;; (print (fl-interp '(+ 10 5) nil)) ; > '15
+;; (print (fl-interp '(- 12 8) nil)) ; > '4
+;; (print (fl-interp '(* 5 9) nil)) ; > '45
+;; (print (fl-interp '(> 2 3) nil)) ; > 'nil
+;; (print (fl-interp '(< 1 131) nil)) ; > 't
+;; (print (fl-interp '(= 88 88) nil)) ; > 't
+;; (print (fl-interp '(and nil t) nil)) ; > 'nil
+;; (print (fl-interp '(or t nil) nil)) ; > 't
+;; (print (fl-interp '(not t) nil)) ; > 'nil
+;; (print (fl-interp '(isnumber 354) nil)) ; > 't
+;; (print (fl-interp '(equal (3 4 1) (3 4 1)) nil)) ; > 't
+;; (print (fl-interp '(if nil 2 3) nil)) ; > '3
+;; (print (fl-interp '(null ()) nil)) ; > 't
+;; (print (fl-interp '(atom (3)) nil)) ; > 'nil
+;; (print (fl-interp '(eq x x) nil)) ; > 't
+;; (print (fl-interp '(first (8 5 16)) nil)) ; > '8
+;; (print (fl-interp '(rest (8 5 16)) nil)) ; > '(5 16)
+;; (print (fl-interp '(cons 6 3) nil)) ; > '(6 . 3)
 
-(print (fl-interp '(+ (* 2 2) (* 2 (- (+ 2 (+ 1 (- 7 4))) 2))) nil)) ; > '12
-(print (fl-interp '(and (> (+ 3 2) (- 4 2)) (or (< 3 (* 2 2))) (not (= 3 2))) nil)) ; > 't
-(print (fl-interp '(or (= 5 (- 4 2)) (and (not (> 2 2)) (< 3 2))) nil)) ; > 'nil
-(print (fl-interp '(if (not (null (first (a c e)))) (if (isnumber (first (a c e))) (first (a c e)) (cons (a c e) d)) (rest (a c e))) nil)) ; > '((a c e) . d)
+;; (print (fl-interp '(+ (* 2 2) (* 2 (- (+ 2 (+ 1 (- 7 4))) 2))) nil)) ; > '12
+;; (print (fl-interp '(and (> (+ 3 2) (- 4 2)) (or (< 3 (* 2 2))) (not (= 3 2))) nil)) ; > 't
+;; (print (fl-interp '(or (= 5 (- 4 2)) (and (not (> 2 2)) (< 3 2))) nil)) ; > 'nil
+;; (print (fl-interp '(if (not (null (first (a c e)))) (if (isnumber (first (a c e))) (first (a c e)) (cons (a c e) d)) (rest (a c e))) nil)) ; > '((a c e) . d)
 
-(print (fl-interp '(greater 3 5) '((greater x y = (if (> x y) x (if (< x y) y nil)))))) ; > '5
-(print (fl-interp '(square 4) '((square x = (* x x))))) ; > '16
-(print (fl-interp '(simpleinterest 4 2 5) '((simpleinterest x y z = (* x (* y z)))))) ; > '40
-(print (fl-interp '(xor t nil) '((xor x y = (if (equal x y) nil t))))) ; > 't
+;; (print (fl-interp '(greater 3 5) '((greater x y = (if (> x y) x (if (< x y) y nil)))))) ; > '5
+;; (print (fl-interp '(square 4) '((square x = (* x x))))) ; > '16
+;; (print (fl-interp '(simpleinterest 4 2 5) '((simpleinterest x y z = (* x (* y z)))))) ; > '40
+;; (print (fl-interp '(xor t nil) '((xor x y = (if (equal x y) nil t))))) ; > 't
 
 ;; WFUCKING RECURSION!!!
 ;;;; USEFUL TRACE FUNCTIONS
@@ -195,7 +195,7 @@
 ;; (trace handle-ps)
 ;; (trace handle-e)
 ;; (trace fl-ev)
-;; (trace fl-interp)
+(trace fl-interp)
 ;; (trace sub-args)
 ;; (trace sub-arg)
 ;; (trace get-args)
