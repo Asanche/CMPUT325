@@ -63,7 +63,10 @@
         ((atom (car E)) ;; If the first element of E is an atom, we have unnested a program name (built in like '*', user defined via P, or undefined, and thusly an error)
             (if (equal (car P) (car E)) ;; if the program name matches P, gogogo
                 (sub-args (get-func P) (get-args (cdr P) (handle-p (cdr E) P))) ;; Here we will replace the name with the program, and evaluate it using the args that should be specified to the right
-                E ;; return E, as it was not a substitutable program application, but needs to be kept
+                (if (null (cdr E)) ;; Weird stuff can happen where nested recursive function (PUSH) might not actually be nested at the start of a lust (1 PUSH (2 3) 4) >.>
+                    E ;; return E, as it was not a substitutable program application, but needs to be kept
+                    (cons (car E) (handle-p (cdr E) P)) ;; Handle PUSH example above
+                )
             )
         ) ;; We pass (cdr P) to get-args to skip the name of the function
         ((not (atom (car E))) ;; If the first element is't an atom, we have a further nested expression like ((F 1 2) (A 3 4))
@@ -139,21 +142,23 @@
     )
 )
 
-(defun fl-interp (E P)
-    (handle-e (handle-ps (handle-e E) P))
+(defun keep-handling (E P)
+    
 )
 
-;;;; USEFUL TRACE FUNCTIONS
-;; (trace handle-p)
-;; (trace handle-ps)
-;; (trace handle-e)
-;; (trace fl-ev)
-;; (trace sub-p)
-;; (trace fl-interp)
-;; (trace sub-args)
-;; (trace sub-arg)
-;; (trace get-args)
-;; (trace get-func)
+
+(defun fl-interp (E P)
+    (cond
+        ((not (equal (handle-e (handle-ps (handle-e E) P)) E))
+            (fl-interp (handle-e (handle-ps (handle-e E) P)) P)
+        )
+        (T 
+            E
+        )
+    )
+)
+
+
 
 (print (fl-interp '(+ 10 5) nil)) ; > '15
 (print (fl-interp '(- 12 8) nil)) ; > '4
@@ -184,9 +189,21 @@
 (print (fl-interp '(simpleinterest 4 2 5) '((simpleinterest x y z = (* x (* y z)))))) ; > '40
 (print (fl-interp '(xor t nil) '((xor x y = (if (equal x y) nil t))))) ; > 't
 
-(print (fl-interp '(last (s u p)) '((last x = (if (null (rest x)) (first x) (last (rest x))))))) ; > 'p ****
-(print (fl-interp '(push (1 2 3) 4) '((push x y = (if (null x) (cons y nil) (cons (first x) (push (rest x) y))))))) ; > '(1 2 3 4) ****
-(print (fl-interp '(pop (1 2 3)) '((pop x = (if (atom (rest (rest x))) (cons (first x) nil) (cons (first x)(pop (rest x)))))))) ; > '(1 2) ****
-(print (fl-interp '(power 4 2) '((power x y = (if (= y 1) x (power (* x x) (- y 1))))))) ; > '16 ****
+;; WFUCKING RECURSION!!!
+;;;; USEFUL TRACE FUNCTIONS
+;; (trace handle-p)
+;; (trace handle-ps)
+;; (trace handle-e)
+;; (trace fl-ev)
+;; (trace fl-interp)
+;; (trace sub-args)
+;; (trace sub-arg)
+;; (trace get-args)
+;; (trace get-func)
+
+;; (print (fl-interp '(last (s u p)) '((last x = (if (null (rest x)) (first x) (last (rest x))))))) ; > 'p **** ----- Recursion within the function
+;; (print (fl-interp '(push (1 2 3) 4) '((push x y = (if (null x) (cons y nil) (cons (first x) (push (rest x) y))))))) ; > '(1 2 3 4) ****
+;; (print (fl-interp '(pop (1 2 3)) '((pop x = (if (atom (rest (rest x))) (cons (first x) nil) (cons (first x)(pop (rest x)))))))) ; > '(1 2) ****
+;; (print (fl-interp '(power 4 2) '((power x y = (if (= y 1) x (power (* x x) (- y 1))))))) ; > '16 ****
 (print (fl-interp '(factorial 4) '((factorial x = (if (= x 1) 1 (* x (factorial (- x 1)))))))) ; > '24 ****
-(print (fl-interp '(divide 24 4) '((divide x y = (div x y 0)) (div x y z = (if (> (* y z) x) (- z 1) (div x y (+ z 1))))))) ; > '6 ****
+;; (print (fl-interp '(divide 24 4) '((divide x y = (div x y 0)) (div x y z = (if (> (* y z) x) (- z 1) (div x y (+ z 1))))))) ; > '6 ****
