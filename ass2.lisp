@@ -1,9 +1,8 @@
-(defun rev (l)
-    (cond
-        ((null l) '())
-        (T (append (rev (cdr l)) (list (car l))))))
-
-
+;;;;; HEADER
+;; Author: ADAM SANCHE
+;; Date: March 1, 2017
+;; Class: CMPUT 325 Lec B1
+;;;;
 
 (defun sub-arg (E A) ;; of form ( (K . V) (K . V) ... )
     (cond
@@ -29,13 +28,12 @@
     )
 )
 
-(defun sub-p () ; sub in N then sub in Args
-
-)
-
 (defun get-func (P) ;; This gets the value from P after the equals sign
     (if (equal (car P) (quote =)) ;; If we reach the '=', all to the right is the program application
-        (cadr P) ;; The rest is the func, but it is nested as ((* a b)) etc...
+        (if (atom (cadr P)) ;; If the function is an atom, it can cause errors later, so return it as a list if this is the case
+            (cdr P) ;; return this case
+            (cadr P) ;; The rest is the func, but it is nested as ((* a b)) etc...
+        )
         (get-func (cdr P)) ;; recur across P until '='
     )
 )
@@ -81,7 +79,7 @@
     )
 )
 
-(defun fl-ev (E)
+(defun fl-ev (E) ;; Here we simly 'switch' on the various operands available to 'FL'
     (cond 
         ((equal (car E) 'atom)
             (atom (cadr E)))
@@ -117,18 +115,24 @@
             (cons (cadr E) (caddr E)))
         ((equal (car E) 'if)
             (if (cadr E) (caddr E) (cadddr E)))
-        (T E) ; like 'default' in Java switch
+        (T E) ; like 'default' in Java switch - Return E if it doesnt match anything
     )
 )
 
 (defun handle-e (E)
     (cond
-        ((or (null E) (atom E)) E)
-        ((atom (car E))
-            (fl-ev (cons (car E) (handle-e (cdr E)))))
-        ((not (atom (car E)))
-            (fl-ev (cons (handle-e (car E)) (handle-e (cdr E)))))
-        (T E)
+        ((or (null E) (atom E))  ;; If E is null or an atom, it can't be evaluated
+            E ;; return E if this is the case, as it may be part of an evaluation still
+        )
+        ((atom (car E)) ;; Operator found, evaluate it
+            (fl-ev (cons (car E) (handle-e (cdr E)))) ;; evaluate the current operator w.r.t the handled cdr of E. Recurr on the rest of the list
+        )
+        ((not (atom (car E))) ;; Similar to above, we need to unnest the expression if the first value isnt an atom
+            (fl-ev (cons (handle-e (car E)) (handle-e (cdr E)))) ;; Recur, on car and cdr, effectively unnesting E
+        )
+        (T 
+            E ;; Return E by default
+        )
     )
 )
 
@@ -136,6 +140,7 @@
     (handle-e (handle-ps (handle-e E) P))
 )
 
+;;;; USEFUL TRACE FUNCTIONS
 ;; (trace handle-p)
 ;; (trace handle-ps)
 ;; (trace handle-e)
@@ -164,7 +169,7 @@
 ;;More Samples
 ; a program may be empty. 
 
-;; (print (fl-interp '(+ 1 2) nil)) ;; => 3
+(print (fl-interp '(+ 1 2) nil)) ;; => 3
 
 ; a function call may be nested
 
@@ -174,40 +179,14 @@
 
 ; function symbols may be quite arbitrary
 
-;; (print (fl-interp '(a (+ 1 2)) 
-;;         '( (a X = (+ X 1)) )
-;; )) ;; => 4
+(print (fl-interp '(a (+ 1 2)) 
+        '( (a X = (+ X 1)) )
+)) ;; => 4
 
-;; (print (fl-interp '(b (+ 1 2)) 
-;;         '( (b X = (+ X 1)) )
-;; )) ;; => 4
-
-
-;; (print (fl-interp '(h (g 5))
-;;     '(  (g X = (g (g X)))
-;;         (h X = a )  )
-;; )) ;; => a  ; for normal order reduction, and 
-;;             ; non-terminating for applicative order reduction
+(print (fl-interp '(b (+ 1 2)) 
+        '( (b X = (+ X 1)) )
+)) ;; => 4
 
 
-; But don't use setq in your program, it's not allowed!
-
-;; (fl-interp '(f (f 2)) '( (f X =  (* X X)) ))
-;; (if x y z) DONE
-;; (null x) DONE
-;; (atom x) DONE
-;; (eq x y) DONE
-;; (first x) DONE
-;; (rest x) DONE
-;; (cons x y) DONE
-;; (equal x y) DONE
-;; (isnumber x) DONE
-;; (+ x y) DONE
-;; (- x y) DONE
-;; (* x y) DONE
-;; (> x y) DONE
-;; (< x y) DONE
-;; (= x y) DONE
-;; (and x y) DONE
-;; (or x y) DONE
-;; (not x) DONE
+(fl-interp '(h (g 5)) '((g X = (g (g X))) (h X = b )));; => a  ; for normal order reduction, and 
+            ; non-terminating for applicative order reduction
