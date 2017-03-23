@@ -108,9 +108,13 @@ maxclique(N, Cliques):-
     N < 2 -> Cliques = [];
     findall(X, node(X), Nodes), 
         Nodes = [H | T],
-        findallcliques([H], T, [], Cliques).
+        findallcliques([H], T, [], Allcliques),
+        filterbysize(N, Allcliques, Subcliques),
+        toremove(Allcliques, Subcliques, Toremove), print(Toremove),
+        xdiff(Toremove, Subcliques, Cliques).
 
-        
+/* These two predicates recursively find all of the cliques on the 
+ * graph defined by the edges and nodes present */
 findallcliques(Start, End, Ci, Co):-
     Start = [H | T],
         member([H], Ci)-> Co = Ci;
@@ -122,6 +126,7 @@ findallcliques(Start, End, Ci, Co):-
         append(T0, [H], End0),
         findallcliques([H0], End0, C1, C2),
         Co = C2.
+
 findcliques(Nodes, C):-
     Nodes == [] -> C = [];
     member(Nodes, C) == true -> print("found already");
@@ -131,3 +136,42 @@ findcliques(Nodes, C):-
         C = Temp0;
     Nodes = [H|T], 
         findcliques(T, C).
+
+/* This predicate filters the items in a list by length of the item.
+ * It assumes that the items are themsleves lists. */
+filterbysize(Size, Cliquesin, Cliquesout):-
+    Cliquesin == [] -> Cliquesout = [];
+    Cliquesin = [H | T],
+        length(H, Len),
+        Len == Size -> filterbysize(Size, T, Temp),
+        append([H], Temp, Cliquesout);
+    Cliquesin = [H | T],
+        filterbysize(Size, T, Temp),
+        append(Temp, [], Cliquesout).
+
+/* This predicate takes in a set and a subset of cliques. It checks that all
+ * of the cliques in the subset of cliques are not a subset of a larger clique. 
+ * If they are, it removes them from the list, and returns the (possibly) reduced
+ * subset of cliques */
+toremove(AC, SC, Result):-
+    SC == [] -> Result = [];
+    toremove2(AC, SC, Temp),
+        SC = [SH | ST], 
+        AC = [AH | AT],
+        toremove(AC, ST, Temp0),
+        append(Temp, Temp0, Result).
+
+toremove2(AC, SC, Result):-
+    AC == [] -> Result = [];
+    SC = [SH | ST], 
+        AC = [AH | AT],
+        subset(SH, AH) , SH == AH -> toremove2(AT, SC, Temp),
+        append([], Temp, Result);
+    SC = [SH | ST], 
+        AC = [AH | AT],
+        subset(SH, AH) -> print("REMOVE THIS:"), print(SH), toremove2(AT, SC, Temp),
+        append([SH], Temp, Result);
+    AC = [AH | AT], 
+        SC = [SH | ST], 
+        toremove2(AT, SC, Temp),
+        append([], Temp, Result).
