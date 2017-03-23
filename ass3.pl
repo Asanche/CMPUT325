@@ -66,6 +66,7 @@ edge(b,c).
 edge(c,a).
 edge(d,a).
 edge(a,e).
+edge(d,e).
 
 /* Provided Predicates */
 clique(L) :- findall(X,node(X),Nodes), xsubset(L,Nodes), allConnected(L).
@@ -105,13 +106,28 @@ connected(A, L):-
 /** Question 5.2 */
 maxclique(N, Cliques):-
     N < 2 -> Cliques = [];
-    findall(X,node(X),Nodes), findallcliques(Nodes, Cliques).
+    findall(X, node(X), Nodes), 
+        Nodes = [H | T],
+        findallcliques([H], T, [], Cliques).
 
-
-findallcliques(N, C):-
-    findcliques(N, C).
-
+        
+findallcliques(Start, End, Ci, Co):-
+    Start = [H | T],
+        member([H], Ci)-> Co = Ci;
+    append(Start, End, Nodes),
+        findcliques(Nodes, C0),
+        append(Ci, C0, C1),
+        Start = [H | T],
+        End = [H0 | T0],
+        append(T0, [H], End0),
+        findallcliques([H0], End0, C1, C2),
+        Co = C2.
 findcliques(Nodes, C):-
     Nodes == [] -> C = [];
-    allConnected(Nodes) ->  Nodes = [H|T], findcliques(T, Temp), append(Temp, Nodes, C);
-    Nodes = [H|T], findcliques(T, C).
+    member(Nodes, C) == true -> print("found already");
+    allConnected(Nodes) -> Nodes = [H | T], 
+        findcliques(T, Temp), 
+        append(Temp, [Nodes], Temp0),
+        C = Temp0;
+    Nodes = [H|T], 
+        findcliques(T, C).
