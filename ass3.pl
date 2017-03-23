@@ -39,9 +39,9 @@ xdiff([], []).
 xdiff(L1, L2, L):-
     L1 == [] -> L = [];
     L1 = [H | T],
-        member(H, L2) -> xfindunique(T, L2, L);
+        member(H, L2) -> xdiff(T, L2, L);
     L1 = [H | T],
-        xfindunique(T, L2, S), 
+        xdiff(T, L2, S), 
         append([H], S, L).
 
 /** Question 4
@@ -66,7 +66,6 @@ edge(b,c).
 edge(c,a).
 edge(d,a).
 edge(a,e).
-edge(d,e).
 
 /* Provided Predicates */
 clique(L) :- findall(X,node(X),Nodes), xsubset(L,Nodes), allConnected(L).
@@ -111,7 +110,7 @@ maxclique(N, Cliques):-
         findallcliques([H], T, [], Allcliques),
         filterbysize(N, Allcliques, Subcliques),
         toremove(Allcliques, Subcliques, Toremove), print(Toremove),
-        xdiff(Toremove, Subcliques, Cliques).
+        xdiff(Subcliques, Toremove, Cliques).
 
 /* These two predicates recursively find all of the cliques on the 
  * graph defined by the edges and nodes present */
