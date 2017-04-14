@@ -1,3 +1,11 @@
+/*
+    Assignment # 4
+    Author: Adam Sanche
+    Date: April 13, 2017
+    Student ID: 1393331
+    Class: CMPUT 325
+*/
+
 /* Link the Constraint Programming library clpfd */
 :- use_module(library(clpfd)).
 
